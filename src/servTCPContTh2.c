@@ -119,7 +119,7 @@ static void *treat(void * arg)
 		pthread_detach(pthread_self());
 		raspunde((struct thData*)arg);
 		/* am terminat cu acest client, inchidem conexiunea */
-		close ((intptr_t)arg);
+		//close ((intptr_t)arg);
 		return(NULL);
 
 };
@@ -130,6 +130,7 @@ void raspunde(void *arg)
         int nr, i=0;
 	struct thData tdL;
 	tdL= *((struct thData*)arg);
+	while(1){
 	if (read (tdL.cl, &nr,sizeof(int)) <= 0)
 			{
 			  printf("[Thread %d]\n",tdL.idThread);
@@ -153,5 +154,6 @@ void raspunde(void *arg)
 	else
 		printf ("[Thread %d]Mesajul a fost trasmis cu succes.\n",tdL.idThread);
 
+}
 }
 

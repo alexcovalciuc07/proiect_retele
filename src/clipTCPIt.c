@@ -59,6 +59,8 @@ int main (int argc, char *argv[])
       return errno;
     }
 
+  while(1)
+  {
   /* citirea mesajului */
   printf ("[client]Introduceti un numar: ");
   fflush (stdout);
@@ -85,7 +87,8 @@ int main (int argc, char *argv[])
   /* afisam mesajul primit */
   printf ("[client]Mesajul primit este: %d\n", nr);
 
-  /* inchidem conexiunea, am terminat */
-  close (sd);
+//  /* inchidem conexiunea, am terminat */
+//  close (sd);
+  }
 }
 
