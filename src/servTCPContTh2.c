@@ -128,7 +128,7 @@ static void *treat(void * arg)
 		pthread_detach(pthread_self());
 		raspunde((struct thData*)arg);
 		/* am terminat cu acest client, inchidem conexiunea */
-		//close ((intptr_t)arg);
+		close ((intptr_t)arg);
 		return(NULL);
 
 };
@@ -260,6 +260,7 @@ void cleanup(sqlite3* database_handle, sqlite3_stmt* prepared_statement)
 void raspunde(void *arg)
 {
 	int score=0;
+	char mesaj_final[255];
 
 	struct thData tdL;
 	tdL= *((struct thData*)arg);
@@ -284,8 +285,9 @@ void raspunde(void *arg)
          /* transmitem intrebarea clientului */
 	 if (write (tdL.cl,intrebare, strlen(intrebare)+1) <= 0)
 		{
-		 printf("[Thread %d] ",tdL.idThread);
-		 perror ("[Thread]Eroare la write() catre client.\n");
+		 printf("[Thread %d] deconectat ",tdL.idThread);
+		 errno=-1;
+		 break;
 		}
 	else
 	{
@@ -294,30 +296,32 @@ void raspunde(void *arg)
 
 		if (read (tdL.cl, raspuns,255) <= 0)
 			{
-			  printf("[Thread %d]\n",tdL.idThread);
-			  perror ("Eroare la read() de la client.\n");
-
+			  printf("[Thread %d] deconectat.\n",tdL.idThread);
+		 	  errno=-1;
+			  break;
 			}
 
 	printf ("[Thread %d]Mesaj receptionat...\n\n",tdL.idThread );
 	// verificam daca participantul a dat un raspuns corect
 	// convertim raspunsul clientului la litera mica si comparam cu valoarea obtinuta de la baza de date
-	if( raspuns_corect  == tolower(raspuns[0]))
+	if( raspuns_corect == tolower(raspuns[0]))
 	{
-		score +=10;
+		score+=10;
 	}
 	strcpy(intrebare,extrage_rand_formatat_baza_de_date(prepared_statement));
 
 	}
-	char scor[255];
-	sprintf(scor,"Ati obtinut %d puncte. Felicitari!",score);
-         /* transmitem scorul clientului */
-	if (write (tdL.cl,scor, strlen(scor)+1) <= 0)
-		{
-		 printf("[Thread %d] ",tdL.idThread);
-		 perror ("[Thread]Eroare la write() catre client.\n");
-		}
+	sprintf(mesaj_final,"Ati obtinut %d puncte. Felicitari!",score);
 	break;
+	}
+
+         /* transmitem scorul clientului */
+	if(errno !=-1){
+	if (write (tdL.cl,mesaj_final, strlen(mesaj_final)+1) <= 0)
+		{
+			printf("[Thread %d] deconectat.\n",tdL.idThread);
+			errno=-1;
+		}
 	}
 
   cleanup(database_handle,prepared_statement);

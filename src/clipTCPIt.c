@@ -1,8 +1,3 @@
-/* cliTCPIt.c - Exemplu de client TCP
-   Trimite un numar la server; primeste de la server numarul incrementat.
-
-   Autor: Lenuta Alboaie  <adria@infoiasi.ro> (c)2009
-*/
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -37,7 +32,6 @@ void citeste_afiseaza_mesaj_bun_venit(int sd)
     }
   printf("%s",mesaj);
 
-
 }
 
 void introducere_nume_utilizator(int sd)
@@ -52,8 +46,6 @@ int main (int argc, char *argv[])
 {
   int sd;			// descriptorul de socket
   struct sockaddr_in server;	// structura folosita pentru conectare
-
-  char intrebare[255];
 
   /* exista toate argumentele in linia de comanda? */
   if (argc != 3)
@@ -93,6 +85,9 @@ int main (int argc, char *argv[])
 
   while(1)
   {
+
+  char intrebare[255];
+
   /* citirea variantei de raspuns introdusa de client */
   read (sd, intrebare, 255);
 
@@ -104,7 +99,6 @@ int main (int argc, char *argv[])
   }
 
   printf("Introduceti raspunsul dumneavoastra:\n[%s]: ",username);
-  fflush (stdout);
   scanf("%s",raspuns);
   /* trimiterea mesajului la server */
   if (write (sd,raspuns,strlen(raspuns)+1) <= 0)
