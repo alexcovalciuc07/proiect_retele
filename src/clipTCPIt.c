@@ -97,6 +97,11 @@ int main (int argc, char *argv[])
   read (sd, intrebare, 255);
 
   printf("%s\n",intrebare);
+  //daca s-a transmis mesajul final inchidem conexiunea
+  if(strstr(intrebare,"Felicitari!")){
+
+	break;
+  }
 
   printf("Introduceti raspunsul dumneavoastra:\n[%s]: ",username);
   fflush (stdout);
@@ -108,8 +113,11 @@ int main (int argc, char *argv[])
       return errno;
     }
 
-//  /* inchidem conexiunea, am terminat */
-//  close (sd);
   }
+
+//  /* inchidem conexiunea, am terminat */
+  close (sd);
+  //tinem clientul in viata pt debugging
+  scanf("%s",raspuns);
 }
 

@@ -16,6 +16,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <ctype.h>
 #include <pthread.h>
 #include <string.h>
 #include "sqlite3.h"
@@ -258,7 +259,7 @@ void cleanup(sqlite3* database_handle, sqlite3_stmt* prepared_statement)
 
 void raspunde(void *arg)
 {
-	int scor=0;
+	int score=0;
 
 	struct thData tdL;
 	tdL= *((struct thData*)arg);
@@ -273,7 +274,8 @@ void raspunde(void *arg)
  	strcpy(intrebare,extrage_rand_formatat_baza_de_date(prepared_statement));
 
 	while(1){
-	if (strcmp(intrebare,"\0") != 0)
+
+	while (strcmp(intrebare,"\0") != 0)
 	{
 
 	char raspuns_corect = intrebare[strlen(intrebare)-2];
@@ -287,7 +289,7 @@ void raspunde(void *arg)
 		}
 	else
 	{
-		printf ("[Thread %d]Mesajul a fost trasmis cu succes.\n",tdL.idThread);
+		printf ("[Thread %d]Mesaj transmis cu succes.\n",tdL.idThread);
 	}
 
 		if (read (tdL.cl, raspuns,255) <= 0)
@@ -297,10 +299,25 @@ void raspunde(void *arg)
 
 			}
 
-	printf ("[Thread %d]Mesajul a fost receptionat...\n%s\n",tdL.idThread, raspuns);
+	printf ("[Thread %d]Mesaj receptionat...\n\n",tdL.idThread );
+	// verificam daca participantul a dat un raspuns corect
+	// convertim raspunsul clientului la litera mica si comparam cu valoarea obtinuta de la baza de date
+	if( raspuns_corect  == tolower(raspuns[0]))
+	{
+		score +=10;
+	}
 	strcpy(intrebare,extrage_rand_formatat_baza_de_date(prepared_statement));
 
 	}
+	char scor[255];
+	sprintf(scor,"Ati obtinut %d puncte. Felicitari!",score);
+         /* transmitem scorul clientului */
+	if (write (tdL.cl,scor, strlen(scor)+1) <= 0)
+		{
+		 printf("[Thread %d] ",tdL.idThread);
+		 perror ("[Thread]Eroare la write() catre client.\n");
+		}
+	break;
 	}
 
   cleanup(database_handle,prepared_statement);
