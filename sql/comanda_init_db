@@ -1,1 +1,0 @@
-sqlite3 database.db -init create_db_script.sql

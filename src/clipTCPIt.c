@@ -19,13 +19,41 @@ extern int errno;
 /* portul de conectare la server*/
 int port;
 
+/* nume utilizator*/
+char username[32];
+
+/*raspunsul care va fi trimis la server*/
+char raspuns[16];
+
+void citeste_afiseaza_mesaj_bun_venit(int sd)
+{
+
+  // mesajul trimis
+  char mesaj[512];
+  /* citirea mesajului de bun venit */
+  if (read (sd, mesaj,512) < 0)
+    {
+      perror("[client]Eroare la read() de la server.\n");
+    }
+  printf("%s",mesaj);
+
+
+}
+
+void introducere_nume_utilizator(int sd)
+{
+
+   printf("%s","\nIntroduceti un nume de utilizator: ");
+   scanf("%s",username);
+
+}
+
 int main (int argc, char *argv[])
 {
   int sd;			// descriptorul de socket
   struct sockaddr_in server;	// structura folosita pentru conectare
-  		// mesajul trimis
-  int nr=0;
-  char buf[10];
+
+  char intrebare[255];
 
   /* exista toate argumentele in linia de comanda? */
   if (argc != 3)
@@ -59,33 +87,26 @@ int main (int argc, char *argv[])
       return errno;
     }
 
+  citeste_afiseaza_mesaj_bun_venit(sd);
+
+  introducere_nume_utilizator(sd);
+
   while(1)
   {
-  /* citirea mesajului */
-  printf ("[client]Introduceti un numar: ");
+  /* citirea variantei de raspuns introdusa de client */
+  read (sd, intrebare, 255);
+
+  printf("%s\n",intrebare);
+
+  printf("Introduceti raspunsul dumneavoastra:\n[%s]: ",username);
   fflush (stdout);
-  read (0, buf, sizeof(buf));
-  nr=atoi(buf);
-  //scanf("%d",&nr);
-
-  printf("[client] Am citit %d\n",nr);
-
+  scanf("%s",raspuns);
   /* trimiterea mesajului la server */
-  if (write (sd,&nr,sizeof(int)) <= 0)
+  if (write (sd,raspuns,strlen(raspuns)+1) <= 0)
     {
       perror ("[client]Eroare la write() spre server.\n");
       return errno;
     }
-
-  /* citirea raspunsului dat de server
-     (apel blocant pina cind serverul raspunde) */
-  if (read (sd, &nr,sizeof(int)) < 0)
-    {
-      perror ("[client]Eroare la read() de la server.\n");
-      return errno;
-    }
-  /* afisam mesajul primit */
-  printf ("[client]Mesajul primit este: %d\n", nr);
 
 //  /* inchidem conexiunea, am terminat */
 //  close (sd);
