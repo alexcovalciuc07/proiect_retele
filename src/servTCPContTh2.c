@@ -1,12 +1,3 @@
-/* servTCPConcTh2.c - Exemplu de server TCP concurent care deserveste clientii
-   prin crearea unui thread pentru fiecare client.
-   Asteapta un numar de la clienti si intoarce clientilor numarul incrementat.
-	Intoarce corect identificatorul din program al thread-ului.
-
-
-   Autor: Lenuta Alboaie  <adria@infoiasi.ro> (c)2009
-*/
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -31,7 +22,10 @@ const char* query = "SELECT * FROM quiz";
 fd_set file_descriptors_set;
 //timer interactiune
 struct timeval tv;
-
+// mutex pt conditia de oprire
+static pthread_mutex_t winner_mutex;
+int stop_condition=0;
+int winner_id=0;
 
 typedef struct thData{
 	int idThread; //id-ul thread-ului tinut in evidenta de acest program
@@ -279,6 +273,11 @@ void raspunde(void *arg)
  	sqlite3* database_handle = init_sql_db_connection(db_path);
   	sqlite3_stmt* prepared_statement = create_prepared_statement(database_handle,query);
 
+	//reinitializam conexiunea pt permiterea de sesiuni in paralel
+	pthread_mutex_lock(&winner_mutex);
+	stop_condition=0;
+	pthread_mutex_unlock(&winner_mutex);
+
   	char intrebare[255];
 	char raspuns[255];
  	strcpy(intrebare,extrage_rand_formatat_baza_de_date(prepared_statement));
@@ -288,6 +287,26 @@ void raspunde(void *arg)
 	while (strcmp(intrebare,"\0") != 0)
 	{
 
+
+	pthread_mutex_lock(&winner_mutex);
+
+
+	if(stop_condition !=0)
+	{
+
+	sprintf(mesaj_final,"Jocul s-a incheiat! Castigator: Jucatorul %d .\n Ati obtinut %d puncte.\n Felicitari!",winner_id,score);
+         /* transmitem scorul clientului */
+	if(errno !=-1){
+	if (write (tdL.cl,mesaj_final, strlen(mesaj_final)+1) <= 0)
+		{
+			printf("[Thread %d] deconectat.\n",tdL.idThread);
+			errno=-1;
+		}
+	}
+
+	}
+
+	pthread_mutex_unlock(&winner_mutex);
 	char raspuns_corect = intrebare[strlen(intrebare)-2];
 	intrebare[strlen(intrebare)-2]='\0';
 
@@ -319,23 +338,21 @@ void raspunde(void *arg)
 	if(errno==0)
 	{
 
-		  printf("Timeout reached");
 		  ratio = 0;
 	}
 	else
 	{
-		  printf("Timeout not reached");
 		  ratio = 1;
-		  printf("%s\n", raspuns);
 	}
 	//reinitalizam timpul maxim permis
 	if (read (tdL.cl, raspuns,255) <= 0)
 	{
 		  printf("[Thread %d] deconectat.\n",tdL.idThread);
-	 	  errno=-1;
+
+		  errno=-1;
 		  break;
 	}
-	printf ("[Thread %d]Mesaj receptionat.%s.\n\n",tdL.idThread,raspuns);
+	printf ("[Thread %d]Mesaj receptionat: %s\n",tdL.idThread,raspuns);
 	// verificam daca participantul a dat un raspuns corect
 	// convertim raspunsul clientului la litera mica si comparam cu valoarea obtinuta de la baza de date
 	if( raspuns_corect == tolower(raspuns[0]))
@@ -345,10 +362,16 @@ void raspunde(void *arg)
 	strcpy(intrebare,extrage_rand_formatat_baza_de_date(prepared_statement));
 
 	}
-	sprintf(mesaj_final,"Ati obtinut %d puncte. Felicitari!",score);
 	break;
 	}
 
+	pthread_mutex_lock(&winner_mutex);
+
+ 	stop_condition = stop_condition+1;
+
+	winner_id = tdL.idThread;
+
+	sprintf(mesaj_final,"Jocul s-a incheiat! Castigator: Jucatorul %d .\nAti obtinut %d puncte.\nFelicitari!",winner_id,score);
          /* transmitem scorul clientului */
 	if(errno !=-1){
 	if (write (tdL.cl,mesaj_final, strlen(mesaj_final)+1) <= 0)
@@ -357,6 +380,8 @@ void raspunde(void *arg)
 			errno=-1;
 		}
 	}
+	pthread_mutex_unlock(&winner_mutex);
+
 
   cleanup(database_handle,prepared_statement);
 
