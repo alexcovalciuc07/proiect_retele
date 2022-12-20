@@ -118,7 +118,7 @@ int main (int argc, char *argv[])
         /*adaugam socketul in set*/
 	pthread_create(&th[i], NULL, &treat, td);
 
-	}//while
+	}
 };
 static void *treat(void * arg)
 {
@@ -189,6 +189,9 @@ sqlite> pragma table_info('quiz');
 					sprintf(data+strlen(data),"\n%s ", sqlite3_column_text(prepared_statement,i));
 					break;
 				default:
+					//pentru a evita o eroare de compilare
+					printf("");
+					//reinitializam varianta de raspuns
 					char varianta[255]="";
 					// Generam litera din fata raspunului. Variantele de raspuns incep de la coloana 2,
 					// deci trebuie sa adaptam valoarea variabilei i.
