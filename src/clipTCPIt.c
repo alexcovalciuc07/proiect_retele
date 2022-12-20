@@ -58,7 +58,7 @@ int main (int argc, char *argv[])
   port = atoi (argv[2]);
 
   /* cream socketul */
-  if ((sd = socket (AF_INET, SOCK_STREAM, 0)) == -1)
+  if ((sd = socket (AF_INET, SOCK_STREAM , 0)) == -1)
     {
       perror ("Eroare la socket().\n");
       return errno;

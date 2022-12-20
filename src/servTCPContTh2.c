@@ -19,11 +19,19 @@
 #include <ctype.h>
 #include <pthread.h>
 #include <string.h>
+#include <sys/select.h>
 #include "sqlite3.h"
 
 extern int errno;
 const char* db_path="db/database.db";
 const char* query = "SELECT * FROM quiz";
+
+
+//setul de fd pt select
+fd_set file_descriptors_set;
+//timer interactiune
+struct timeval tv;
+
 
 typedef struct thData{
 	int idThread; //id-ul thread-ului tinut in evidenta de acest program
@@ -48,8 +56,7 @@ int main (int argc, char *argv[])
   int sd;		//descriptorul de socket
   int pid;
   pthread_t th[100];    //Identificatorii thread-urilor care se vor crea
-	int i=0;
-
+  int i=0;
 
   /* crearea unui socket */
   if ((sd = socket (AF_INET, SOCK_STREAM, 0)) == -1)
@@ -72,7 +79,6 @@ int main (int argc, char *argv[])
     server.sin_addr.s_addr = htonl (INADDR_ANY);
   /* utilizam un port utilizator */
     server.sin_port = htons (PORT);
-
   /* atasam socketul */
   if (bind (sd, (struct sockaddr *) &server, sizeof (struct sockaddr)) == -1)
     {
@@ -98,6 +104,7 @@ int main (int argc, char *argv[])
       printf ("[server]Asteptam la portul %d...\n",PORT);
       fflush (stdout);
 
+
       // client= malloc(sizeof(int));
       /* acceptam un client (stare blocanta pina la realizarea conexiunii) */
       if ( (client = accept (sd, (struct sockaddr *) &from, &length)) < 0)
@@ -110,11 +117,11 @@ int main (int argc, char *argv[])
 
 	// int idThread; //id-ul threadului
 	// int cl; //descriptorul intors de accept
-
 	td=(struct thData*)malloc(sizeof(struct thData));
 	td->idThread=i++;
 	td->cl=client;
 
+        /*adaugam socketul in set*/
 	pthread_create(&th[i], NULL, &treat, td);
 
 	}//while
@@ -155,7 +162,7 @@ void transmite_mesaj_initial(struct thData tdL){
 char* extrage_rand_formatat_baza_de_date(sqlite3_stmt* prepared_statement)
 {
 /*
-Schema bazei de date:
+Schema bazei de date
 sqlite> pragma table_info('quiz');
 0|id|INTEGER|0||1
 1|question_text|varchar(255)|0||0
@@ -261,6 +268,8 @@ void raspunde(void *arg)
 {
 	int score=0;
 	char mesaj_final[255];
+	int ratio=0;
+	int question_value=10;
 
 	struct thData tdL;
 	tdL= *((struct thData*)arg);
@@ -282,6 +291,7 @@ void raspunde(void *arg)
 	char raspuns_corect = intrebare[strlen(intrebare)-2];
 	intrebare[strlen(intrebare)-2]='\0';
 
+
          /* transmitem intrebarea clientului */
 	 if (write (tdL.cl,intrebare, strlen(intrebare)+1) <= 0)
 		{
@@ -294,19 +304,43 @@ void raspunde(void *arg)
 		printf ("[Thread %d]Mesaj transmis cu succes.\n",tdL.idThread);
 	}
 
-		if (read (tdL.cl, raspuns,255) <= 0)
-			{
-			  printf("[Thread %d] deconectat.\n",tdL.idThread);
-		 	  errno=-1;
-			  break;
-			}
+	//reinitalizam timpul maxim permis
+	tv.tv_sec=5;
+	tv.tv_usec=0;
+  	//reinitializam lista de fd
+  	FD_ZERO(&file_descriptors_set);
+	FD_SET(tdL.cl,&file_descriptors_set);
+	errno = select(tdL.cl+1,&file_descriptors_set,NULL,NULL,&tv);
+	if (errno == -1)
+	{
+		  printf("Eroare la select");
+		  break;
+	}
+	if(errno==0)
+	{
 
-	printf ("[Thread %d]Mesaj receptionat...\n\n",tdL.idThread );
+		  printf("Timeout reached");
+		  ratio = 0;
+	}
+	else
+	{
+		  printf("Timeout not reached");
+		  ratio = 1;
+		  printf("%s\n", raspuns);
+	}
+	//reinitalizam timpul maxim permis
+	if (read (tdL.cl, raspuns,255) <= 0)
+	{
+		  printf("[Thread %d] deconectat.\n",tdL.idThread);
+	 	  errno=-1;
+		  break;
+	}
+	printf ("[Thread %d]Mesaj receptionat.%s.\n\n",tdL.idThread,raspuns);
 	// verificam daca participantul a dat un raspuns corect
 	// convertim raspunsul clientului la litera mica si comparam cu valoarea obtinuta de la baza de date
 	if( raspuns_corect == tolower(raspuns[0]))
 	{
-		score+=10;
+		score+=question_value*ratio;
 	}
 	strcpy(intrebare,extrage_rand_formatat_baza_de_date(prepared_statement));
 
