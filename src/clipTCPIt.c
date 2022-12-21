@@ -111,7 +111,5 @@ int main (int argc, char *argv[])
 
 //  /* inchidem conexiunea, am terminat */
   close (sd);
-  //tinem clientul in viata pt debugging
-  scanf("%s",raspuns);
 }
 

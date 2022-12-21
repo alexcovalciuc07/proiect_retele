@@ -190,7 +190,7 @@ sqlite> pragma table_info('quiz');
 					break;
 				default:
 					//pentru a evita o eroare de compilare
-					printf("");
+					printf(" ");
 					//reinitializam varianta de raspuns
 					char varianta[255]="";
 					// Generam litera din fata raspunului. Variantele de raspuns incep de la coloana 2,
